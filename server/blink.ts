@@ -7,15 +7,15 @@ import { serve } from "@hono/node-server";
 import { ActionGetResponse, ActionPostResponse } from './interfaces';
 import { serveStatic } from '@hono/node-server/serve-static'
 import { RplSpsBlinks } from './idl/rpl_sps_blinks';
-import { readFileSync } from 'fs';
 import { Corporation } from '@prisma/client';
 import { PublicKey } from '@solana/web3.js';
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 
 const url = "https://spsblink.runepunk.gg" // TODO change this to deployment URL
 const prisma = new PrismaClient();
 const idl = require("./idl/rpl_sps_blinks");
 const connection = new anchor.web3.Connection(process.env.RPC, "confirmed");
-const serverKey = anchor.web3.Keypair.fromSecretKey(Buffer.from(JSON.parse(readFileSync("./keys/A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8.json").toString())))
+const serverKey = anchor.web3.Keypair.fromSecretKey(bs58.decode(process.env.SERVER_ADMIN_KEY)); //anchor.web3.Keypair.fromSecretKey(Buffer.from(JSON.parse(readFileSync("./keys/A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8.json").toString())))
 const program: anchor.Program<RplSpsBlinks> = new anchor.Program(idl, new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey)));
 const app = new Hono();
 

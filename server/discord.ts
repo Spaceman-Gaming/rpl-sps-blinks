@@ -6,14 +6,14 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 import { RplSpsBlinks } from './idl/rpl_sps_blinks';
 const idl = require("./idl/rpl_sps_blinks");
-
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const rest = new REST().setToken(DISCORD_BOT_TOKEN);
 
 const url = "https://spsblink.runepunk.gg" // TODO change this to deployment URL
 const connection = new anchor.web3.Connection(process.env.RPC, "confirmed");
-const serverKey = anchor.web3.Keypair.fromSecretKey(Buffer.from(JSON.parse(readFileSync("./keys/A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8.json").toString())))
+const serverKey = anchor.web3.Keypair.fromSecretKey(bs58.decode(process.env.SERVER_ADMIN_KEY));
 const program: anchor.Program<RplSpsBlinks> = new anchor.Program(idl, new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey)));
 
 client.once(Events.ClientReady, async (readyClient) => {
