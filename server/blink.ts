@@ -79,6 +79,7 @@ app.post('/api/corporation/buy', async (c) => {
         const size = parseSizeOrThrow(c.req.query("size"));
         const reqJson = await c.req.json();
         const account = new PublicKey(reqJson.account);
+        console.log(`user account: ${account}`);
         const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), account.toBuffer()], program.programId)[0];
         const player = await program.account.player.fetchNullable(playerKey);
         console.log(`player: ${playerKey} account ${player}`);
