@@ -76,7 +76,9 @@ app.post('/api/corporation/buy', async (c) => {
 
     try {
         const corpKey = c.req.query("q");
+        console.log(corpKey);
         const size = parseSizeOrThrow(c.req.query("size"));
+        console.log(size);
         const reqJson = await c.req.json();
         console.log(reqJson);
         const account = reqJson.account;
