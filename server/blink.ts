@@ -7,15 +7,15 @@ import { serve } from "@hono/node-server";
 import { ActionGetResponse, ActionPostResponse } from './interfaces';
 import { serveStatic } from '@hono/node-server/serve-static'
 import { RplSpsBlinks } from './idl/rpl_sps_blinks';
-import { readFileSync } from 'fs';
 import { Corporation } from '@prisma/client';
 import { PublicKey } from '@solana/web3.js';
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 
 const url = "https://spsblink.runepunk.gg" // TODO change this to deployment URL
 const prisma = new PrismaClient();
 const idl = require("./idl/rpl_sps_blinks");
 const connection = new anchor.web3.Connection(process.env.RPC, "confirmed");
-const serverKey = anchor.web3.Keypair.fromSecretKey(Buffer.from(JSON.parse(readFileSync("./keys/A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8.json").toString())))
+const serverKey = anchor.web3.Keypair.fromSecretKey(bs58.decode(process.env.SERVER_ADMIN_KEY)); //anchor.web3.Keypair.fromSecretKey(Buffer.from(JSON.parse(readFileSync("./keys/A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8.json").toString())))
 const program: anchor.Program<RplSpsBlinks> = new anchor.Program(idl, new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey)));
 const app = new Hono();
 
@@ -76,13 +76,20 @@ app.post('/api/corporation/buy', async (c) => {
 
     try {
         const corpKey = c.req.query("q");
-        const { account } = await c.req.json();
-        const corp = await prisma.corporation.findUniqueOrThrow({ where: { publickey: corpKey } });
         const size = parseSizeOrThrow(c.req.query("size"));
+        const reqJson = await c.req.json();
+        const account = new PublicKey(reqJson.account);
+        const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), account.toBuffer()], program.programId)[0];
+        const player = await program.account.player.fetchNullable(playerKey);
+        console.log(`player: ${playerKey} account ${player}`);
+        const slot = await connection.getSlot();
+        if (player != null && new anchor.BN(slot).lt(player.nextPurchaseSlot)) {
+            throw new Error(`${player.nextPurchaseSlot.sub(new anchor.BN(slot)).div(new anchor.BN(2))}s til you can buy more goods!`)
+        }
+        const corp = await prisma.corporation.findUniqueOrThrow({ where: { publickey: corpKey } });
         const txn = await makeCorporationBuyTxn(corp, size, account);
-        const respPayload: ActionPostResponse = {
-            transaction: Buffer.from(txn.serialize()).toString('base64')
-        };
+        const txnb64 = Buffer.from(txn.serialize()).toString('base64');
+        const respPayload: ActionPostResponse = { transaction: txnb64 };
         return c.json(respPayload, 200);
     } catch (e: any) {
         const errorResponse: ActionGetResponse = {
@@ -91,7 +98,7 @@ app.post('/api/corporation/buy', async (c) => {
             description: "",
             label: "Error!",
             disabled: true,
-            error: { message: "Timeout on buying new goods." } //TODO specify goods
+            error: { message: e.message }
         }
         return c.json(errorResponse, 200);
     }
@@ -107,11 +114,12 @@ serve({
 console.log(`Hono running on port ${process.env.PORT || 3000}`);
 
 
-export async function makeCorporationBuyTxn(corp: Corporation, size: 1 | 2 | 3, account: String): Promise<anchor.web3.VersionedTransaction> {
+export async function makeCorporationBuyTxn(corp: Corporation, size: 1 | 2 | 3, account: PublicKey): Promise<anchor.web3.VersionedTransaction> {
     const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
-    const playerAuthority = new PublicKey(account);
+
     const ix = await program.methods.buyGoods(convertToAnchorFormatEnum(size)).accounts({
-        authority: playerAuthority,
+        payer: serverKey.publicKey,
+        authority: account,
         sps: new PublicKey(corp.publickey)
     }).instruction();
     const msg = new anchor.web3.TransactionMessage({

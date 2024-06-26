@@ -7,14 +7,14 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 import { RplSpsBlinks } from './idl/rpl_sps_blinks';
 const idl = require("./idl/rpl_sps_blinks");
-
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const rest = new REST().setToken(DISCORD_BOT_TOKEN);
 
 const url = "https://spsblink.runepunk.gg" // TODO change this to deployment URL
 const connection = new anchor.web3.Connection(process.env.RPC, "confirmed");
-const serverKey = anchor.web3.Keypair.fromSecretKey(Buffer.from(JSON.parse(readFileSync("./keys/A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8.json").toString())))
+const serverKey = anchor.web3.Keypair.fromSecretKey(bs58.decode(process.env.SERVER_ADMIN_KEY));
 const program: anchor.Program<RplSpsBlinks> = new anchor.Program(idl, new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey)));
 
 client.once(Events.ClientReady, async (readyClient) => {
@@ -96,6 +96,9 @@ const incorporateCommand = {
                 Buffer.from("sps"),
                 Buffer.from(interaction.user.id)
             ], program.programId)[0];
+            const sps = await prisma.corporation.findFirst({ where: { publickey: spsKey.toString() } });
+            if (sps) { throw new Error("Player already has a corporation!") }
+
 
             const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
             const ix = await program.methods.incorporate(interaction.user.id).instruction();
@@ -152,9 +155,14 @@ const hireSecurityCommand = {
                 Buffer.from("sps"),
                 Buffer.from(interaction.user.id)
             ], program.programId)[0];
+            const amount = new anchor.BN(interaction.options.getNumber("amount"));
+            const sps = await program.account.sps.fetch(spsKey);
+            if (sps.credz < (new anchor.BN(20).mul(amount))) {
+                throw new Error("You don't have enough CREDz!")
+            }
 
             const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
-            const ix = await program.methods.hireSecurity(new anchor.BN(interaction.options.getNumber("amount"))).instruction();
+            const ix = await program.methods.hireSecurity(amount).instruction();
             const msg = new anchor.web3.TransactionMessage({
                 payerKey: serverKey.publicKey,
                 recentBlockhash: (await connection.getLatestBlockhash()).blockhash,

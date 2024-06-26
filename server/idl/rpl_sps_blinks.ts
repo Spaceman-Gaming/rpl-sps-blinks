@@ -37,8 +37,12 @@ export type RplSpsBlinks = {
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "authority",
+          "name": "payer",
           "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
           "signer": true
         },
         {

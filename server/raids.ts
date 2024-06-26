@@ -11,18 +11,20 @@ const MS_BETWEEN_RAIDS = tryParseNumber(process.env.MS_BETWEEN_RAIDS) || 1000 * 
 const PROBABILITY_RAID = tryParseNumber(process.env.PROBABILITY_RAID) || 0.10;
 const RAID_ROUND_ROBIN = tryParseBoolean(process.env.RAID_ROUND_ROBIN) || true;
 const TXN_BATCH_SIZE = 50;
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
+
 
 // connection stuff
 const idl = require("./idl/rpl_sps_blinks");
 const connection = new anchor.web3.Connection(process.env.RPC, "confirmed");
-const serverKey = anchor.web3.Keypair.fromSecretKey(Buffer.from(JSON.parse(readFileSync("./keys/A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8.json").toString())))
+const serverKey = anchor.web3.Keypair.fromSecretKey(bs58.decode(process.env.SERVER_ADMIN_KEY));
 const program: anchor.Program<RplSpsBlinks> = new anchor.Program(idl, new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey)));
 const prisma = new PrismaClient();
 
 // types
 type Raid = {
-    corporation : Corporation,
-    goblinCount : number
+    corporation: Corporation,
+    goblinCount: number
 };
 
 // cron-like functionality
@@ -30,7 +32,7 @@ async function doRegularRaids() {
     try {
         await doRaids();
     }
-    catch(e) {
+    catch (e) {
         console.log(e);
     }
     setTimeout(doRegularRaids, MS_BETWEEN_RAIDS);
@@ -72,7 +74,7 @@ async function doRaids() {
     await updateCorporationsInDB(raidedCorpsPubkeys, raidTime);
 }
 
-async function performRaid(raid : Raid) {
+async function performRaid(raid: Raid) {
     const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
     const ix = await program.methods.raid(new anchor.BN(raid.goblinCount))
         .accounts({
@@ -128,30 +130,30 @@ async function updateCorporationsInDB(raidedCorpsPubkeys : string[], raidTime : 
 }
 
 function randomlySelectCorporationToRaid(corporations : Corporation[]) : Raid[] {
-    const raids : Raid[] = [];
+    const raids: Raid[] = [];
     for (const corporation of corporations) {
         const randomlySelected = Math.random() < PROBABILITY_RAID;
         const raidedInLastHour = RAID_ROUND_ROBIN && (Date.now() - corporation.lastRaided.getTime()) < 1000 * 60 * 60;
         if (randomlySelected && !raidedInLastHour) {
-          const goblinCount = Math.floor(Math.random() * 5 + 1);
-          raids.push({
-            corporation, goblinCount
-          });
+            const goblinCount = Math.floor(Math.random() * 5 + 1);
+            raids.push({
+                corporation, goblinCount
+            });
         }
     }
     return raids;
 }
 
-async function fetchLivingCorporations() : Promise<Corporation[]> {
-  const corporations = await prisma.corporation.findMany({
-    where: {
-        isDead: false
-    }
-  });
-  return corporations;
+async function fetchLivingCorporations(): Promise<Corporation[]> {
+    const corporations = await prisma.corporation.findMany({
+        where: {
+            isDead: false
+        }
+    });
+    return corporations;
 }
 
-function sleep(ms : number) : Promise<void> {
+function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
