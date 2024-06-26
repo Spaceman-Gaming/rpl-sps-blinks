@@ -4,16 +4,16 @@ import * as anchor from '@coral-xyz/anchor';
 import { readFileSync } from 'fs';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
-import { RplSpsBlinks } from './idl/rpl_sps_blinks';
-const idl = require("./idl/rpl_sps_blinks");
+import { RplSpsBlinks } from './idl/rpl_sps_blinks'; // KP
+const idl = require("./idl/rpl_sps_blinks"); // KP
 
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const rest = new REST().setToken(DISCORD_BOT_TOKEN);
 
 const connection = new anchor.web3.Connection(process.env.RPC, "confirmed");
-const program: anchor.Program<RplSpsBlinks> = new anchor.Program(idl, { connection });
 const serverKey = anchor.web3.Keypair.fromSecretKey(Buffer.from(JSON.parse(readFileSync("./keys/A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8.json").toString())))
+const program: anchor.Program<RplSpsBlinks> = new anchor.Program(idl, new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey)));
 
 client.once(Events.ClientReady, async (readyClient) => {
     await rest.put(
@@ -56,6 +56,9 @@ const infoCommand = {
         .setName("info")
         .setDescription("Get info about the given user"),
     async execute(interaction: ChatInputCommandInteraction) {
+        console.log(interaction.user.id);
+        console.log(interaction.user.id.length);
+        console.log("x");
         const spsKey = anchor.web3.PublicKey.findProgramAddressSync([
             Buffer.from("sps"),
             Buffer.from(interaction.user.id)
@@ -96,6 +99,7 @@ const incorporateCommand = {
                 Buffer.from(interaction.user.id)
             ], program.programId)[0];
 
+            // TODO: xyz
             const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
             const ix = await program.methods.incorporate(interaction.user.id).instruction();
             const msg = new anchor.web3.TransactionMessage({
@@ -105,6 +109,7 @@ const incorporateCommand = {
             }).compileToV0Message();
             const txn = new anchor.web3.VersionedTransaction(msg);
             txn.sign([serverKey]);
+            // TODO: xyz
             connection.sendRawTransaction(txn.serialize());
 
             await prisma.corporation.create({

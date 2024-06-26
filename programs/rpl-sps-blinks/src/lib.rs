@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 declare_id!("7M5gyKT88N9fViSMjNcizfq5Rtz9CSLN8agu7r7TRULY");
 
 /**Constants */
-pub const DISCORD_USER_ID_LEN: usize = 18;
+pub const DISCORD_USER_ID_LEN: usize = 20;
 pub const SERVER_KEY: Pubkey = anchor_lang::pubkey!("A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8");
 pub const SECURITY_COST: u64 = 20;
 /** */
@@ -30,6 +30,7 @@ pub mod rpl_sps_blinks {
     /**
      * Buy Goods allows blink users to contribute funds to a SPS on a time locked basis
      */
+    // KP
     pub fn buy_goods(ctx: Context<BuyGoods>, goods_size: GoodsSize) -> Result<()> {
         let player = &mut ctx.accounts.player;
         player.owner = ctx.accounts.authority.key();
