@@ -83,6 +83,7 @@ app.post('/api/corporation/buy', async (c) => {
         console.log(reqJson);
         const account = reqJson.account;
         const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), new PublicKey(account).toBuffer()], program.programId)[0];
+        console.log("playerkey:", playerKey.toString());
         const player = await program.account.player.fetch(playerKey);
         const slot = await connection.getSlot();
         console.log("slot", slot);
