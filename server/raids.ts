@@ -6,21 +6,19 @@ import { readFileSync } from 'fs';
 import { RplSpsBlinks } from './idl/rpl_sps_blinks';
 import { PublicKey } from '@solana/web3.js';
 
+const MS_BETWEEN_RAIDS = 1000 * 60 * 5;
+const PROBABILITY_RAID = 0.10;
+
 const idl = require("./idl/rpl_sps_blinks");
 const connection = new anchor.web3.Connection(process.env.RPC, "confirmed");
 const serverKey = anchor.web3.Keypair.fromSecretKey(Buffer.from(JSON.parse(readFileSync("./keys/A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8.json").toString())))
 const program: anchor.Program<RplSpsBlinks> = new anchor.Program(idl, new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey)));
-
-
 const prisma = new PrismaClient();
 
 type Raid = {
     corporation : Corporation,
     goblinCount : number
 };
-
-const MS_BETWEEN_RAIDS = 1000 * 60 * 5;
-const PROBABILITY_RAID = 0.10;
 
 function doRaidsTask() {
     doRaids();
@@ -31,26 +29,37 @@ doRaidsTask();
 
 async function doRaids() {
 
+    console.log("Performing raids.");
+
+    // fetch the corps that are alive
     const corporations = await fetchLivingCorporations();
+
+    console.log(`Retrieved ${corporations.length} living corporations.`);
+
+    // pick some for raids, as long as they haven't been raided in the last hour
     const raids = randomlySelectCorporationRaids(corporations).slice(0, 50);
 
-    // do solana stuff stuff
-    const raidTime = new Date(Date.now());
+    console.log(`Selected ${raids.length} corporations to raid.`);
 
     await Promise.allSettled(raids.map(raid => performRaid(raid)));
 
-    // wait
+    console.log(`Executed (or attempted to execute) ${raids.length} raid transactions.`);
+
+    const raidTime = new Date(Date.now());
+
+    await sleep(5000);
 
     const raidedCorpPubkeys = raids.map(attacks => attacks.corporation.publickey);
 
     const fetchedCorporations = await program.account.sps.fetchMultiple(raidedCorpPubkeys);
 
-    // TODO: add battle points to DB
-
     const deadCorpPubkeys = fetchedCorporations.filter(corp => corp.isDead).map((corp,index) => {
         return raidedCorpPubkeys[index];
     });
 
+    console.log(`Setting ${deadCorpPubkeys.length} corporations as dead.`);
+
+    // set the corps that are dead as dead
     prisma.corporation.updateMany({
         where : {
             publickey: {
@@ -62,6 +71,9 @@ async function doRaids() {
         }
     });
 
+    console.log(`Setting ${raidedCorpPubkeys.length} corporations lastRaidTime to ${raidTime.toUTCString()}.`);
+
+    // set the last raid time on all the other corps
     prisma.corporation.updateMany({ 
         where : {
             publickey: {
@@ -75,7 +87,6 @@ async function doRaids() {
 }
 
 async function performRaid(raid : Raid) {
-    // TODO
     const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
     const ix = await program.methods.raid(new anchor.BN(raid.goblinCount))
         .accounts({
@@ -112,4 +123,8 @@ async function fetchLivingCorporations() : Promise<Corporation[]> {
     }
   });
   return corporations;
+}
+
+function sleep(ms : number) : Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
