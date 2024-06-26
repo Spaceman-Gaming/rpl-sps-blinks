@@ -85,6 +85,7 @@ app.post('/api/corporation/buy', async (c) => {
         const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), new PublicKey(account).toBuffer()], program.programId)[0];
         console.log("playerkey:", playerKey.toString());
         const player = await program.account.player.fetch(playerKey);
+        console.log(player);
         const slot = await connection.getSlot();
         console.log("slot", slot);
         if (new anchor.BN(slot).lt(player.nextPurchaseSlot)) {
