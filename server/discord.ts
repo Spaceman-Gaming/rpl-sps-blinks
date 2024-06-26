@@ -95,6 +95,9 @@ const incorporateCommand = {
                 Buffer.from("sps"),
                 Buffer.from(interaction.user.id)
             ], program.programId)[0];
+            const sps = await prisma.corporation.findFirst({ where: { publickey: spsKey.toString() } });
+            if (sps) { throw new Error("Player already has a corporation!") }
+
 
             const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
             const ix = await program.methods.incorporate(interaction.user.id).instruction();
