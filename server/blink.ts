@@ -82,7 +82,7 @@ app.post('/api/corporation/buy', async (c) => {
         const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), account.toBuffer()], program.programId)[0];
         const player = await program.account.player.fetchNullable(playerKey);
         const slot = await connection.getSlot();
-        if (player && new anchor.BN(slot).lt(player.nextPurchaseSlot)) {
+        if (player != null && new anchor.BN(slot).lt(player.nextPurchaseSlot)) {
             throw new Error(`${player.nextPurchaseSlot.sub(new anchor.BN(slot)).div(new anchor.BN(2))}s til you can buy more goods!`)
         }
         const corp = await prisma.corporation.findUniqueOrThrow({ where: { publickey: corpKey } });
@@ -115,11 +115,10 @@ console.log(`Hono running on port ${process.env.PORT || 3000}`);
 
 export async function makeCorporationBuyTxn(corp: Corporation, size: 1 | 2 | 3, account: PublicKey): Promise<anchor.web3.VersionedTransaction> {
     const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
-    const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), new PublicKey(account).toBytes()], program.programId)[0];
-    const playerAuthority = new PublicKey(playerKey);
+
     const ix = await program.methods.buyGoods(convertToAnchorFormatEnum(size)).accounts({
         payer: serverKey.publicKey,
-        authority: playerAuthority,
+        authority: account,
         sps: new PublicKey(corp.publickey)
     }).instruction();
     const msg = new anchor.web3.TransactionMessage({
