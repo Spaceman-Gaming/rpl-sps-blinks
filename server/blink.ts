@@ -84,6 +84,8 @@ app.post('/api/corporation/buy', async (c) => {
         const player = await program.account.player.fetchNullable(playerKey);
         console.log(`player: ${playerKey} account ${player}`);
         const slot = await connection.getSlot();
+        console.log("slot: ", slot);
+        console.log("player next purchase slot: ", player.nextPurchaseSlot);
         if (player != null && new anchor.BN(slot).lt(player.nextPurchaseSlot)) {
             throw new Error(`${player.nextPurchaseSlot.sub(new anchor.BN(slot)).div(new anchor.BN(2))}s til you can buy more goods!`)
         }

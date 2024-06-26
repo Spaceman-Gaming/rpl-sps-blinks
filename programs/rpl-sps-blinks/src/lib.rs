@@ -48,17 +48,17 @@ pub mod rpl_sps_blinks {
             GoodsSize::Small => {
                 player.goods_bought += 10;
                 sps.credz += 10;
-                player.next_purchase_slot += slot + (1 * 60 * 60 * 2);
+                player.next_purchase_slot = slot + (1 * 60 * 60 * 2);
             }
             GoodsSize::Medium => {
                 player.goods_bought += 60;
                 sps.credz += 60;
-                player.next_purchase_slot += slot + (3 * 60 * 60 * 2);
+                player.next_purchase_slot = slot + (3 * 60 * 60 * 2);
             }
             GoodsSize::Large => {
                 player.goods_bought += 120;
                 sps.credz += 120;
-                player.next_purchase_slot += slot + (6 * 60 * 60 * 2);
+                player.next_purchase_slot = slot + (6 * 60 * 60 * 2);
             }
         }
 
