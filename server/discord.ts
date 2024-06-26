@@ -153,9 +153,14 @@ const hireSecurityCommand = {
                 Buffer.from("sps"),
                 Buffer.from(interaction.user.id)
             ], program.programId)[0];
+            const amount = new anchor.BN(interaction.options.getNumber("amount"));
+            const sps = await program.account.sps.fetch(spsKey);
+            if (sps.credz < (new anchor.BN(20).mul(amount))) {
+                throw new Error("You don't have enough CREDz!")
+            }
 
             const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
-            const ix = await program.methods.hireSecurity(new anchor.BN(interaction.options.getNumber("amount"))).instruction();
+            const ix = await program.methods.hireSecurity(amount).instruction();
             const msg = new anchor.web3.TransactionMessage({
                 payerKey: serverKey.publicKey,
                 recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
