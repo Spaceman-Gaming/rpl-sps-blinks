@@ -88,7 +88,7 @@ app.post('/api/corporation/buy', async (c) => {
         console.log("player next purchase slot: ", player?.nextPurchaseSlot.toString());
         if (player != null && new anchor.BN(slot).lt(player.nextPurchaseSlot)) {
             console.error("Player tried to buy goods too early!");
-            throw new Error(`${player.nextPurchaseSlot.sub(new anchor.BN(slot)).div(new anchor.BN(2))}s til you can buy more goods!`)
+            throw new Error(`Must wait til you can buy more goods!`)
         }
         const corp = await prisma.corporation.findUniqueOrThrow({ where: { publickey: corpKey } });
         const txn = await makeCorporationBuyTxn(corp, size, account);
