@@ -79,6 +79,7 @@ app.post('/api/corporation/buy', async (c) => {
         const size = parseSizeOrThrow(c.req.query("size"));
         const reqJson = await c.req.json();
         console.log(reqJson);
+        const account = reqJson.account;
         const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), new PublicKey(account).toBuffer()], program.programId)[0];
         const player = await program.account.player.fetch(playerKey);
         const slot = await connection.getSlot();
