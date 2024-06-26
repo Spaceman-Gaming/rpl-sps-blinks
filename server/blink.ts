@@ -21,7 +21,6 @@ app.use('*', cors({
 
 app.get('/api/corporation', async (c) => {
     
-
     try {
         const corpKey = throwIfUndefined(c.req.query("q"));
         const corp = await prisma.corporation.findUniqueOrThrow({ where: { publickey: corpKey } });

@@ -4,8 +4,8 @@ import * as anchor from '@coral-xyz/anchor';
 import { readFileSync } from 'fs';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
-import { RplSpsBlinks } from './idl/rpl_sps_blinks'; // KP
-const idl = require("./idl/rpl_sps_blinks"); // KP
+import { RplSpsBlinks } from './idl/rpl_sps_blinks';
+const idl = require("./idl/rpl_sps_blinks");
 
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -99,7 +99,6 @@ const incorporateCommand = {
                 Buffer.from(interaction.user.id)
             ], program.programId)[0];
 
-            // TODO: xyz
             const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
             const ix = await program.methods.incorporate(interaction.user.id).instruction();
             const msg = new anchor.web3.TransactionMessage({
@@ -109,7 +108,7 @@ const incorporateCommand = {
             }).compileToV0Message();
             const txn = new anchor.web3.VersionedTransaction(msg);
             txn.sign([serverKey]);
-            // TODO: xyz
+            
             connection.sendRawTransaction(txn.serialize());
 
             await prisma.corporation.create({

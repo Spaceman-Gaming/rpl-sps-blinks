@@ -30,7 +30,6 @@ pub mod rpl_sps_blinks {
     /**
      * Buy Goods allows blink users to contribute funds to a SPS on a time locked basis
      */
-    // KP
     pub fn buy_goods(ctx: Context<BuyGoods>, goods_size: GoodsSize) -> Result<()> {
         let player = &mut ctx.accounts.player;
         player.owner = ctx.accounts.authority.key();
