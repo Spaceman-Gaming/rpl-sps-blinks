@@ -11,7 +11,7 @@ import { readFileSync } from 'fs';
 import { Corporation } from '@prisma/client';
 import { PublicKey } from '@solana/web3.js';
 
-const url = "http://spsblink.runepunk.gg" // TODO change this to deployment URL
+const url = "https://spsblink.runepunk.gg" // TODO change this to deployment URL
 const prisma = new PrismaClient();
 const idl = require("./idl/rpl_sps_blinks");
 const connection = new anchor.web3.Connection(process.env.RPC, "confirmed");
