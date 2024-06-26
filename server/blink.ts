@@ -76,15 +76,16 @@ app.post('/api/corporation/buy', async (c) => {
 
     try {
         const corpKey = c.req.query("q");
+        const size = parseSizeOrThrow(c.req.query("size"));
         const { account } = await c.req.json();
-        const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), new PublicKey(account).toBytes()], program.programId)[0];
+        const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), new PublicKey(account).toBuffer()], program.programId)[0];
         const player = await program.account.player.fetch(playerKey);
         const slot = await connection.getSlot();
         if (new anchor.BN(slot).lt(player.nextPurchaseSlot)) {
             throw new Error(`${player.nextPurchaseSlot.sub(new anchor.BN(slot)).div(new anchor.BN(2))}s til you can buy more goods!`)
         }
         const corp = await prisma.corporation.findUniqueOrThrow({ where: { publickey: corpKey } });
-        const size = parseSizeOrThrow(c.req.query("size"));
+        console.log("About to make txn");
         const txn = await makeCorporationBuyTxn(corp, size, account);
         const respPayload: ActionPostResponse = {
             transaction: Buffer.from(txn.serialize()).toString('base64')
