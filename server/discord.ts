@@ -68,19 +68,16 @@ const infoCommand = {
 
             await interaction.reply({
                 content: `
-                    User ID: ${interaction.user.id}
-                    Battle Points: ${sps.battlePoints.toString()},
-                    CREDz: ${sps.credz.toString()},
-                    Security Forces: ${sps.securityForces.toString()}
-                    Is Dead: ${sps.isDead}
-                    Blink: ${blink}
-                    `, ephemeral: true
+User ID: ${interaction.user.id}
+Battle Points: ${sps.battlePoints.toString()},
+CREDz: ${sps.credz.toString()},
+Security Forces: ${sps.securityForces.toString()}
+Is Dead: ${sps.isDead}
+Blink: ${blink}`, ephemeral: true
             })
         } catch (e) {
             await interaction.reply({
-                content: `
-                Player has not incorporated yet!
-                `, ephemeral: true,
+                content: `Player has not incorporated yet!`, ephemeral: true,
             })
         }
     }
@@ -172,9 +169,7 @@ const hireSecurityCommand = {
             txn.sign([serverKey]);
             connection.sendRawTransaction(txn.serialize());
             await interaction.reply({
-                content: `
-                Successfully bought ${interaction.options.getNumber("amount")} forces!
-                `, ephemeral: true,
+                content: `Successfully bought ${interaction.options.getNumber("amount")} forces!`, ephemeral: true,
             })
         } catch (e: any) {
             await interaction.reply({
