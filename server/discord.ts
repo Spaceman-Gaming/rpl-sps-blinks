@@ -3,6 +3,7 @@ import { ChatInputCommandInteraction, Client, Events, GatewayIntentBits, REST, R
 import * as anchor from '@coral-xyz/anchor';
 import { readFileSync } from 'fs';
 import { PrismaClient } from '@prisma/client';
+
 const prisma = new PrismaClient();
 import { RplSpsBlinks } from './idl/rpl_sps_blinks';
 const idl = require("./idl/rpl_sps_blinks");
@@ -115,6 +116,7 @@ const incorporateCommand = {
                 data: {
                     publickey: spsKey.toString(),
                     discordOwnerId: interaction.user.id,
+                    battlePoints: 0,
                     lastRaided: new Date(),
                     isDead: false,
                 }
