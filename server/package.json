@@ -6,6 +6,7 @@
   "dependencies": {
     "@hono/node-server": "^1.11.4",
     "@prisma/client": "5.16.0",
+    "discord.js": "^14.15.3",
     "dotenv": "^16.4.5",
     "hono": "^4.4.8",
     "prisma": "^5.16.0",

@@ -11,6 +11,7 @@ const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const rest = new REST().setToken(DISCORD_BOT_TOKEN);
 
+const url = "https://spsblink.runepunk.gg" // TODO change this to deployment URL
 const connection = new anchor.web3.Connection(process.env.RPC, "confirmed");
 const serverKey = anchor.web3.Keypair.fromSecretKey(Buffer.from(JSON.parse(readFileSync("./keys/A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8.json").toString())))
 const program: anchor.Program<RplSpsBlinks> = new anchor.Program(idl, new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey)));
@@ -37,7 +38,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
     }
 
-    console.log(interaction.commandName);
     switch (interaction.commandName) {
         case "info":
             infoCommand.execute(interaction);
@@ -56,9 +56,6 @@ const infoCommand = {
         .setName("info")
         .setDescription("Get info about the given user"),
     async execute(interaction: ChatInputCommandInteraction) {
-        console.log(interaction.user.id);
-        console.log(interaction.user.id.length);
-        console.log("x");
         const spsKey = anchor.web3.PublicKey.findProgramAddressSync([
             Buffer.from("sps"),
             Buffer.from(interaction.user.id)
@@ -66,7 +63,7 @@ const infoCommand = {
 
         try {
             const sps = await program.account.sps.fetch(spsKey);
-            const blink = `http://localhost:3000/corporation?q=${spsKey.toString()}`
+            const blink = `${url}/api/corporation?q=${spsKey.toString()}`
 
             await interaction.reply({
                 content: `
@@ -108,7 +105,7 @@ const incorporateCommand = {
             }).compileToV0Message();
             const txn = new anchor.web3.VersionedTransaction(msg);
             txn.sign([serverKey]);
-            
+
             connection.sendRawTransaction(txn.serialize());
 
             await prisma.corporation.create({
@@ -120,7 +117,7 @@ const incorporateCommand = {
                 }
             })
 
-            const blink = `http://localhost:3000/corporation?q=${spsKey.toString()}`
+            const blink = `${url}/api/corporation?q=${spsKey.toString()}`
             await interaction.reply({
                 content: `
                 Success! Here is your corporation blink: ${blink}
