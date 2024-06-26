@@ -37,7 +37,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
     }
 
-    console.log(interaction.commandName);
     switch (interaction.commandName) {
         case "info":
             infoCommand.execute(interaction);
@@ -56,9 +55,6 @@ const infoCommand = {
         .setName("info")
         .setDescription("Get info about the given user"),
     async execute(interaction: ChatInputCommandInteraction) {
-        console.log(interaction.user.id);
-        console.log(interaction.user.id.length);
-        console.log("x");
         const spsKey = anchor.web3.PublicKey.findProgramAddressSync([
             Buffer.from("sps"),
             Buffer.from(interaction.user.id)
@@ -108,7 +104,7 @@ const incorporateCommand = {
             }).compileToV0Message();
             const txn = new anchor.web3.VersionedTransaction(msg);
             txn.sign([serverKey]);
-            
+
             connection.sendRawTransaction(txn.serialize());
 
             await prisma.corporation.create({
