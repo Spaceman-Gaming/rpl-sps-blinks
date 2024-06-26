@@ -27,6 +27,9 @@ pub mod rpl_sps_blinks {
         Ok(())
     }
 
+    /**
+     * Buy Goods allows blink users to contribute funds to a SPS on a time locked basis
+     */
     pub fn buy_goods(ctx: Context<BuyGoods>, goods_size: GoodsSize) -> Result<()> {
         let player = &mut ctx.accounts.player;
         player.owner = ctx.accounts.authority.key();
@@ -62,6 +65,9 @@ pub mod rpl_sps_blinks {
         Ok(())
     }
 
+    /**
+     * Hire Security allows users to spend CREDz to buy security forces
+     */
     pub fn hire_security(ctx: Context<HireSecurity>, amount: u64) -> Result<()> {
         let sps = &mut ctx.accounts.sps;
 
@@ -76,6 +82,10 @@ pub mod rpl_sps_blinks {
         Ok(())
     }
 
+    /**
+     * The server raids SPSs every so often with a random number of goblins. It takes 1 security force to defeat each goblin, If goblins deplete all security forces, the SPS is destroyed
+     * SPS gets a battle point for every goblin they defeat
+     */
     pub fn raid(ctx: Context<Raid>, goblins: u64) -> Result<()> {
         let sps = &mut ctx.accounts.sps;
 
