@@ -76,26 +76,18 @@ app.post('/api/corporation/buy', async (c) => {
 
     try {
         const corpKey = c.req.query("q");
-        console.log(corpKey);
         const size = parseSizeOrThrow(c.req.query("size"));
-        console.log(size);
         const reqJson = await c.req.json();
-        console.log(reqJson);
         const account = new PublicKey(reqJson.account);
         const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), account.toBuffer()], program.programId)[0];
-        console.log("playerkey:", playerKey.toString());
-        const player = await program.account.player.fetch(playerKey);
-        console.log(player);
+        const player = await program.account.player.fetchNullable(playerKey);
         const slot = await connection.getSlot();
-        console.log("slot", slot);
-        if (new anchor.BN(slot).lt(player.nextPurchaseSlot)) {
+        if (player && new anchor.BN(slot).lt(player.nextPurchaseSlot)) {
             throw new Error(`${player.nextPurchaseSlot.sub(new anchor.BN(slot)).div(new anchor.BN(2))}s til you can buy more goods!`)
         }
         const corp = await prisma.corporation.findUniqueOrThrow({ where: { publickey: corpKey } });
-        console.log("About to make txn");
         const txn = await makeCorporationBuyTxn(corp, size, account);
         const txnb64 = Buffer.from(txn.serialize()).toString('base64');
-        console.log(txnb64);
         const respPayload: ActionPostResponse = { transaction: txnb64 };
         return c.json(respPayload, 200);
     } catch (e: any) {
