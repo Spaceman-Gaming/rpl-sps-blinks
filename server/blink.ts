@@ -81,8 +81,8 @@ app.post('/api/corporation/buy', async (c) => {
         console.log(size);
         const reqJson = await c.req.json();
         console.log(reqJson);
-        const account = reqJson.account;
-        const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), new PublicKey(account).toBuffer()], program.programId)[0];
+        const account = new PublicKey(reqJson.account);
+        const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), account.toBuffer()], program.programId)[0];
         console.log("playerkey:", playerKey.toString());
         const player = await program.account.player.fetch(playerKey);
         console.log(player);
@@ -105,7 +105,7 @@ app.post('/api/corporation/buy', async (c) => {
             description: "",
             label: "Error!",
             disabled: true,
-            error: { message: "Timeout on buying new goods." } //TODO specify goods
+            error: { message: e.message }
         }
         return c.json(errorResponse, 200);
     }
@@ -121,11 +121,12 @@ serve({
 console.log(`Hono running on port ${process.env.PORT || 3000}`);
 
 
-export async function makeCorporationBuyTxn(corp: Corporation, size: 1 | 2 | 3, account: String): Promise<anchor.web3.VersionedTransaction> {
+export async function makeCorporationBuyTxn(corp: Corporation, size: 1 | 2 | 3, account: PublicKey): Promise<anchor.web3.VersionedTransaction> {
     const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
     const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), new PublicKey(account).toBytes()], program.programId)[0];
     const playerAuthority = new PublicKey(playerKey);
     const ix = await program.methods.buyGoods(convertToAnchorFormatEnum(size)).accounts({
+        payer: serverKey.publicKey,
         authority: playerAuthority,
         sps: new PublicKey(corp.publickey)
     }).instruction();

@@ -128,11 +128,12 @@ pub struct Incorporate<'info> {
 pub struct BuyGoods<'info> {
     pub system_program: Program<'info, System>,
     #[account(mut)]
+    pub payer: Signer<'info>,
     pub authority: Signer<'info>,
     #[account(
         init_if_needed,
         space=8+Player::INIT_SPACE,
-        payer=authority,
+        payer=payer,
         seeds=[
             b"player",
             authority.key().as_ref(),
