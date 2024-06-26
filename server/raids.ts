@@ -21,7 +21,12 @@ type Raid = {
 };
 
 function doRaidsTask() {
-    doRaids();
+    try {
+        doRaids();
+    }
+    catch(e) {
+        console.log(e);
+    }
     setTimeout(doRaidsTask, MS_BETWEEN_RAIDS);
 }
 
@@ -29,37 +34,28 @@ doRaidsTask();
 
 async function doRaids() {
 
-    console.log("Performing raids.");
-
     // fetch the corps that are alive
     const corporations = await fetchLivingCorporations();
-
     console.log(`Retrieved ${corporations.length} living corporations.`);
 
     // pick some for raids, as long as they haven't been raided in the last hour
-    const raids = randomlySelectCorporationRaids(corporations).slice(0, 50);
-
+    const raids = randomlySelectCorporationRaids(corporations);
     console.log(`Selected ${raids.length} corporations to raid.`);
 
+    // wait for all promises to settle, then wait a bit longer
     await Promise.allSettled(raids.map(raid => performRaid(raid)));
-
     console.log(`Executed (or attempted to execute) ${raids.length} raid transactions.`);
-
     const raidTime = new Date(Date.now());
-
     await sleep(5000);
 
+    // fetch the corps back from the blockchain to see which are dead
     const raidedCorpPubkeys = raids.map(attacks => attacks.corporation.publickey);
-
     const fetchedCorporations = await program.account.sps.fetchMultiple(raidedCorpPubkeys);
-
     const deadCorpPubkeys = fetchedCorporations.filter(corp => corp.isDead).map((corp,index) => {
         return raidedCorpPubkeys[index];
     });
 
-    console.log(`Setting ${deadCorpPubkeys.length} corporations as dead.`);
-
-    // set the corps that are dead as dead
+    // set the corps in the DB that are dead as dead
     prisma.corporation.updateMany({
         where : {
             publickey: {
@@ -70,8 +66,7 @@ async function doRaids() {
             isDead: true
         }
     });
-
-    console.log(`Setting ${raidedCorpPubkeys.length} corporations lastRaidTime to ${raidTime.toUTCString()}.`);
+    console.log(`Set ${deadCorpPubkeys.length} corporations as dead.`);
 
     // set the last raid time on all the other corps
     prisma.corporation.updateMany({ 
@@ -84,6 +79,7 @@ async function doRaids() {
             lastRaided: raidTime
         } 
     });
+    console.log(`Set ${raidedCorpPubkeys.length} corporations lastRaidTime to ${raidTime.toUTCString()}.`);
 }
 
 async function performRaid(raid : Raid) {
@@ -102,18 +98,18 @@ async function performRaid(raid : Raid) {
 }
 
 function randomlySelectCorporationRaids(corporations : Corporation[]) : Raid[] {
-    const corporationAttacks : Raid[] = [];
+    const raids : Raid[] = [];
     for (const corporation of corporations) {
         const randomlySelected = Math.random() < PROBABILITY_RAID;
-        const attackedInLastHour = (Date.now() - corporation.lastRaided.getTime()) < 1000 * 60 * 60;
-        if (randomlySelected && !attackedInLastHour) {
+        const raidedInLastHour = (Date.now() - corporation.lastRaided.getTime()) < 1000 * 60 * 60;
+        if (randomlySelected && !raidedInLastHour) {
           const goblinCount = Math.floor(Math.random() * 5 + 1);
-          corporationAttacks.push({
+          raids.push({
             corporation, goblinCount
           });
         }
     }
-    return corporationAttacks;
+    return raids;
 }
 
 async function fetchLivingCorporations() : Promise<Corporation[]> {
