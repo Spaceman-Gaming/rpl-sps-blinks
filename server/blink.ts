@@ -81,6 +81,7 @@ app.post('/api/corporation/buy', async (c) => {
         const account = new PublicKey(reqJson.account);
         const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), account.toBuffer()], program.programId)[0];
         const player = await program.account.player.fetchNullable(playerKey);
+        console.log(`player: ${playerKey} account ${player}`);
         const slot = await connection.getSlot();
         if (player != null && new anchor.BN(slot).lt(player.nextPurchaseSlot)) {
             throw new Error(`${player.nextPurchaseSlot.sub(new anchor.BN(slot)).div(new anchor.BN(2))}s til you can buy more goods!`)
