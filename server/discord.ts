@@ -46,7 +46,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         case "incorporate":
             incorporateCommand.execute(interaction);
             break;
-        case "hire-security":
+        case "hire":
             hireSecurityCommand.execute(interaction);
             break;
     }
@@ -142,7 +142,7 @@ const incorporateCommand = {
 const hireSecurityCommand = {
     data: new SlashCommandBuilder()
         .setName("hire")
-        .setDescription("Hire security forces to defend against goblin raids")
+        .setDescription("Hire security forces to defend against goblin raids. Cost 20 CREDz each.")
         .addNumberOption(option =>
             option
                 .setName("amount")
