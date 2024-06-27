@@ -5,14 +5,14 @@ import { Corporation, PrismaClient } from '@prisma/client';
 import { readFileSync } from 'fs';
 import { RplSpsBlinks } from './idl/rpl_sps_blinks';
 import { PublicKey } from '@solana/web3.js';
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 
 // constants
 const MS_BETWEEN_RAIDS = tryParseNumber(process.env.MS_BETWEEN_RAIDS) || 1000 * 60 * 5;
 const PROBABILITY_RAID = tryParseNumber(process.env.PROBABILITY_RAID) || 0.10;
-const RAID_ROUND_ROBIN = defaultsTo(tryParseBoolean(process.env.RAID_ROUND_ROBIN), true)
+const RAID_ROUND_ROBIN = defaultsTo(tryParseBoolean(process.env.RAID_ROUND_ROBIN), true);
+const DB_UPDATE_BATCH_SIZE = 5;
 const TXN_BATCH_SIZE = 50;
-import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
-
 
 // connection stuff
 const idl = require("./idl/rpl_sps_blinks");
@@ -97,39 +97,46 @@ async function updateCorporationsInDB(raidedCorpsPubkeys : string[], raidTime : 
     // pull those back from the chain to see their updated state (battlePoints, isDead, etc.)
     const updatedRaidedCorps = await program.account.sps.fetchMultiple(raidedCorpsPubkeys);
 
-    // find which ones are now dead because of the raid
-    const deadCorpPubkeys = updatedRaidedCorps
+    // match corps to pubkeys
+    const corpsWithPubkeys = updatedRaidedCorps
         .map((corp,index) => {
             return { pubkey: raidedCorpsPubkeys[index], corp };
-        })
-        .filter(x => x.corp.isDead)
-        .map(x => x.pubkey);
+        });
 
-    // mark all corps that are dead on chain as dead in the DB
-    await prisma.corporation.updateMany({
-        where : {
-            publickey: {
-                in: deadCorpPubkeys
-            }
-        },
-        data : {
-            isDead: true
-        }
-    });
-    console.log(`Marked ${deadCorpPubkeys.length} corporations as dead.`);
+    // keep track of which DB updates succeeded and failed
+    const recordUpdateStatuses : ('success'|'failure')[] = [];
+    
+    // divide the updates in batches
+    const batchedCorpsWithPubKeys = batchOf(corpsWithPubkeys, DB_UPDATE_BATCH_SIZE);
 
-    // set the last raid time on all the other corps
-    await prisma.corporation.updateMany({ 
-        where : {
-            publickey: {
-                in: raidedCorpsPubkeys
-            }
-        }, 
-        data : {
-            lastRaided: raidTime
-        } 
-    });
-    console.log(`Set ${raidedCorpsPubkeys.length} corporations lastRaidTime to ${raidTime.toUTCString()}.`);
+    // for each batch of corporations to update
+    for (const batch of batchedCorpsWithPubKeys) {
+
+        // fire off promises to update them in the DB
+        const updateCorpDBRecordPromises = batch.map(corpWithPubKey => {
+            return prisma.corporation.update({
+                where: {
+                    publickey: corpWithPubKey.pubkey
+                },
+                data : {
+                    isDead: corpWithPubKey.corp.isDead,
+                    battlePoints: corpWithPubKey.corp.battlePoints.toNumber(),
+                    lastRaided: raidTime
+                }
+            })
+        });
+
+        // when all the promises in the promise batch are settled, collect the promise results and interpret them as success / failure for updates
+        await Promise.allSettled(updateCorpDBRecordPromises).then(results => {
+            recordUpdateStatuses.push(...results.map(result => result.status === 'fulfilled' ? 'success' : 'failure'))
+        });
+
+        console.log(`Sent batch of ${batch.length} corporation updates to DB`);
+    }
+
+    // summarise the promise results for the log
+    const numSuccesses = recordUpdateStatuses.filter(r => r === 'success').length;
+    console.log(`DB update successes: ${numSuccesses}, DB update failures: ${recordUpdateStatuses.length - numSuccesses}, Total: ${recordUpdateStatuses.length}`);
 }
 
 function randomlySelectCorporationToRaid(corporations : Corporation[]) : Raid[] {
