@@ -158,6 +158,10 @@ const hireSecurityCommand = {
                 throw new Error("You don't have enough CREDz!")
             }
 
+            if (amount.lte(new anchor.BN(0))) {
+                throw new Error("Not a valid amount to hire!")
+            }
+
             const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
             const ix = await program.methods.hireSecurity(amount).accounts({ sps: spsKey }).instruction();
             const msg = new anchor.web3.TransactionMessage({
