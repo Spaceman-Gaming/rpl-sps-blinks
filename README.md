@@ -1,6 +1,6 @@
 # Runepunk Storefronts
 
-For an understanding of how this game works: https://spsblinks.runepunk.gg
+For an understanding of how this game works: https://spsblink.runepunk.gg
 
 ### On Chain Program
 program/rpl-sps-blinks
