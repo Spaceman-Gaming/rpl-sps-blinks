@@ -41,7 +41,15 @@ async function doRegularRaids() {
 // kick it off
 doRegularRaids();
 
+
+
+
 async function doRaids() {
+
+    //await reviveAllDeadCorporations();
+    //await reviveDeadCorporation("CgUTRP9TVLyDf6ukJDh28eZMgr1ZWvmyJsMYF9W4muZo");
+    //await resetPlayerTimer('hNAT1oeJJez9fQ8pzj6QED7ztMfZrkTig9GepJ2jJsS');
+    //throw Error();
 
     // fetch the corps that are alive
     const corporations = await fetchLivingCorporations();
@@ -73,6 +81,7 @@ async function doRaids() {
 }
 
 async function performRaid(raid: Raid) {
+    console.log(`Performing raid on ${raid.corporation.publickey} with ${raid.goblinCount} goblins`)
     const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
     const ix = await program.methods.raid(new anchor.BN(raid.goblinCount))
         .accounts({
@@ -204,5 +213,85 @@ function defaultsTo<T>(x : T|undefined, defaultValue : T) : T {
         return defaultValue;
     }
     return x;
+}
+
+
+
+async function reviveAllDeadCorporations() {
+    
+    const deadCorporations = await prisma.corporation.findMany({
+        where: {
+            isDead: true
+        }
+    });
+    
+    const pubkeys : string[]  = [];
+    for (const deadCorporation of deadCorporations) {
+        await reviveDeadCorporation(deadCorporation.publickey).then(_ => {
+            pubkeys.push(deadCorporation.publickey);
+        });
+    }
+
+    await prisma.corporation.updateMany({
+        where: {
+            publickey: {
+                in: pubkeys
+            }
+        },
+        data : {
+            isDead: false
+        }
+    });
+
+    console.log(`Reset ${pubkeys.length} corporations`)
+}
+
+
+async function reviveDeadCorporation(corpPubkey : string) {
+    const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
+    const ix = await program.methods.reviveSps()
+        .accounts({
+            sps: new PublicKey(corpPubkey)
+        }).instruction();
+    const msg = new anchor.web3.TransactionMessage({
+        payerKey: serverKey.publicKey,
+        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        instructions: [priorityFeeIx, ix]
+    }).compileToV0Message();
+    const txn = new anchor.web3.VersionedTransaction(msg);
+    txn.sign([serverKey]);
+    const provider = new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey));
+    await provider.sendAndConfirm(txn, undefined, {
+        commitment: 'confirmed',
+        maxRetries: 5
+    });
+}
+
+async function resetPlayerTimer(playerAddress : string) {
+
+    const [playerPDA,bump] = PublicKey.findProgramAddressSync([
+        Buffer.from("player"), 
+        new PublicKey(playerAddress).toBytes()],
+    program.programId);
+
+    const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
+    const ix = await program.methods.resetPlayerTimer()
+        .accounts({
+            player: playerPDA
+        }).instruction();
+    const msg = new anchor.web3.TransactionMessage({
+        payerKey: serverKey.publicKey,
+        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        instructions: [priorityFeeIx, ix]
+    }).compileToV0Message();
+    const txn = new anchor.web3.VersionedTransaction(msg);
+    txn.sign([serverKey]);
+    const provider = new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey));
+    await provider.sendAndConfirm(txn, undefined, {
+        commitment: 'confirmed',
+        maxRetries: 5
+    });
+
+    console.log("Reset.");
 }
 
