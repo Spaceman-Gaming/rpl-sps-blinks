@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { ChatInputCommandInteraction, Client, Events, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, Client, Events, GatewayIntentBits, REST, RESTGetAPIUserResult, Routes, SlashCommandBuilder } from 'discord.js';
 import * as anchor from '@coral-xyz/anchor';
 import { readFileSync } from 'fs';
 import { PrismaClient } from '@prisma/client';
@@ -26,6 +26,7 @@ client.once(Events.ClientReady, async (readyClient) => {
                 infoCommand.data.toJSON(),
                 incorporateCommand.data.toJSON(),
                 hireSecurityCommand.data.toJSON(),
+                leaderboardCommand.data.toJSON(),
             ]
         }
     )
@@ -49,6 +50,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
             break;
         case "hire":
             hireSecurityCommand.execute(interaction);
+            break;
+        case "leaderboard":
+            leaderboardCommand.execute(interaction);
             break;
     }
 })
@@ -128,9 +132,7 @@ const incorporateCommand = {
             })
         } catch (e: any) {
             await interaction.reply({
-                content: `
-                Error: ${e.message}
-                `, ephemeral: true,
+                content: `Error: ${e.message}`, ephemeral: true,
             })
         }
 
@@ -178,9 +180,34 @@ const hireSecurityCommand = {
             })
         } catch (e: any) {
             await interaction.reply({
-                content: `
-                Error: ${e.message}
-                `, ephemeral: true,
+                content: `Error: ${e.message}`, ephemeral: true,
+            })
+        }
+    }
+}
+
+const leaderboardCommand = {
+    data: new SlashCommandBuilder()
+        .setName("leaderboard")
+        .setDescription("See which corporations are doing the best right now!"),
+    async execute(interaction: ChatInputCommandInteraction) {
+        try {
+            const corps = (await prisma.corporation.findMany({
+                orderBy: {
+                    battlePoints: "desc",
+                },
+                take: 10
+            }))
+            let leaderboard = ``;
+            for (let corp of corps) {
+                leaderboard += `Username: ${await client.users.fetch(corp.discordOwnerId)} | Points: ${corp.battlePoints}\n`
+            };
+            await interaction.reply({
+                content: leaderboard, ephemeral: true,
+            })
+        } catch (e: any) {
+            await interaction.reply({
+                content: `Error: ${e.message}`, ephemeral: true,
             })
         }
     }
