@@ -9,7 +9,7 @@ import { PublicKey } from '@solana/web3.js';
 // constants
 const MS_BETWEEN_RAIDS = tryParseNumber(process.env.MS_BETWEEN_RAIDS) || 1000 * 60 * 5;
 const PROBABILITY_RAID = tryParseNumber(process.env.PROBABILITY_RAID) || 0.10;
-const RAID_ROUND_ROBIN = tryParseBoolean(process.env.RAID_ROUND_ROBIN) || true;
+const RAID_ROUND_ROBIN = defaultsTo(tryParseBoolean(process.env.RAID_ROUND_ROBIN), true)
 const TXN_BATCH_SIZE = 50;
 import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 
@@ -62,8 +62,6 @@ async function doRaids() {
     const raidTime = new Date(Date.now());
     await sleep(5000);
 
-    console.log(transactionResults);
-
     // find which transactions succeeded, call those the "raided corporations"
     const raidedCorpsPubkeys = raids
         .map(raid => raid.corporation.publickey)
@@ -87,6 +85,11 @@ async function performRaid(raid: Raid) {
     }).compileToV0Message();
     const txn = new anchor.web3.VersionedTransaction(msg);
     txn.sign([serverKey]);
+    const provider = new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey));
+    await provider.sendAndConfirm(txn, undefined, {
+        commitment: 'confirmed',
+        maxRetries: 5
+    });
 }
 
 async function updateCorporationsInDB(raidedCorpsPubkeys : string[], raidTime : Date) {
@@ -187,5 +190,12 @@ function tryParseBoolean(x : string|undefined) : boolean|undefined {
         return undefined;
     }
     return { 'true': true, 'false': false }[x];
+}
+
+function defaultsTo<T>(x : T|undefined, defaultValue : T) : T {
+    if (x == null) {
+        return defaultValue;
+    }
+    return x;
 }
 
