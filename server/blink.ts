@@ -19,6 +19,7 @@ const serverKey = anchor.web3.Keypair.fromSecretKey(bs58.decode(process.env.SERV
 const program: anchor.Program<RplSpsBlinks> = new anchor.Program(idl, new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey)));
 const app = new Hono();
 
+app.get('/', (c) => c.redirect('https://spacemangaming.notion.site/Runepunk-Storefronts-37aa1c31a3934fda8211c1de1dd68075?pvs=4'))
 app.use('/public/*', serveStatic({ root: "./" }));
 app.use('*', cors({
     origin: ['*'], //TODO: Restrict to x.com or twitter.com
@@ -79,16 +80,11 @@ app.post('/api/corporation/buy', async (c) => {
         const size = parseSizeOrThrow(c.req.query("size"));
         const reqJson = await c.req.json();
         const account = new PublicKey(reqJson.account);
-        console.log(`user account: ${account}`);
         const playerKey = PublicKey.findProgramAddressSync([Buffer.from("player"), account.toBuffer()], program.programId)[0];
         const player = await program.account.player.fetchNullable(playerKey);
-        console.log(`player: ${playerKey} account ${player}`);
         const slot = await connection.getSlot();
-        console.log("slot: ", slot);
-        console.log("player next purchase slot: ", player?.nextPurchaseSlot.toString());
         if (player != null && new anchor.BN(slot).lt(player.nextPurchaseSlot)) {
-            console.error("Player tried to buy goods too early!");
-            throw new Error(`Must wait til you can buy more goods!`)
+            throw new Error(`${player.nextPurchaseSlot.sub(new anchor.BN(slot)).div(new anchor.BN(2))}s til you can buy more goods!`);
         }
         const corp = await prisma.corporation.findUniqueOrThrow({ where: { publickey: corpKey } });
         const txn = await makeCorporationBuyTxn(corp, size, account);
@@ -96,13 +92,17 @@ app.post('/api/corporation/buy', async (c) => {
         const respPayload: ActionPostResponse = { transaction: txnb64 };
         return c.json(respPayload, 200);
     } catch (e: any) {
-        const errorResponse: ActionGetResponse = {
-            icon: `${url}/public/error.png`,
-            title: "Corporation not found!",
-            description: "",
-            label: "Error!",
-            disabled: true,
-            error: { message: e.message }
+        const msg = new anchor.web3.TransactionMessage({
+            payerKey: serverKey.publicKey,
+            recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+            instructions: []
+        }).compileToV0Message();
+        const txn = new anchor.web3.VersionedTransaction(msg);
+        txn.sign([serverKey]);
+
+        const errorResponse: ActionPostResponse = {
+            transaction: Buffer.from(txn.serialize()).toString('base64'),
+            message: `ERROR: ${e.message}`
         }
         return c.json(errorResponse, 200);
     }

@@ -46,7 +46,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         case "incorporate":
             incorporateCommand.execute(interaction);
             break;
-        case "hire-security":
+        case "hire":
             hireSecurityCommand.execute(interaction);
             break;
     }
@@ -68,19 +68,16 @@ const infoCommand = {
 
             await interaction.reply({
                 content: `
-                    User ID: ${interaction.user.id}
-                    Battle Points: ${sps.battlePoints.toString()},
-                    CREDz: ${sps.credz.toString()},
-                    Security Forces: ${sps.securityForces.toString()}
-                    Is Dead: ${sps.isDead}
-                    Blink: ${blink}
-                    `, ephemeral: true
+User ID: ${interaction.user.id}
+Battle Points: ${sps.battlePoints.toString()},
+CREDz: ${sps.credz.toString()},
+Security Forces: ${sps.securityForces.toString()}
+Is Dead: ${sps.isDead}
+Blink: ${blink}`, ephemeral: true
             })
         } catch (e) {
             await interaction.reply({
-                content: `
-                Player has not incorporated yet!
-                `, ephemeral: true,
+                content: `Player has not incorporated yet!`, ephemeral: true,
             })
         }
     }
@@ -142,7 +139,7 @@ const incorporateCommand = {
 const hireSecurityCommand = {
     data: new SlashCommandBuilder()
         .setName("hire")
-        .setDescription("Hire security forces to defend against goblin raids")
+        .setDescription("Hire security forces to defend against goblin raids. Cost 20 CREDz each.")
         .addNumberOption(option =>
             option
                 .setName("amount")
@@ -162,7 +159,7 @@ const hireSecurityCommand = {
             }
 
             const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
-            const ix = await program.methods.hireSecurity(amount).instruction();
+            const ix = await program.methods.hireSecurity(amount).accounts({ server: serverKey.publicKey, sps: spsKey }).instruction();
             const msg = new anchor.web3.TransactionMessage({
                 payerKey: serverKey.publicKey,
                 recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
@@ -172,9 +169,7 @@ const hireSecurityCommand = {
             txn.sign([serverKey]);
             connection.sendRawTransaction(txn.serialize());
             await interaction.reply({
-                content: `
-                Successfully bought ${interaction.options.getNumber("amount")} forces!
-                `, ephemeral: true,
+                content: `Successfully bought ${interaction.options.getNumber("amount")} forces!`, ephemeral: true,
             })
         } catch (e: any) {
             await interaction.reply({
