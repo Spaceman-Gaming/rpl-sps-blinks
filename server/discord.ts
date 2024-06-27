@@ -155,7 +155,7 @@ const hireSecurityCommand = {
             ], program.programId)[0];
             const amount = new anchor.BN(interaction.options.getNumber("amount"));
             const sps = await program.account.sps.fetch(spsKey);
-            if (sps.credz < (new anchor.BN(20).mul(amount))) {
+            if (sps.credz.lt(new anchor.BN(20).mul(amount))) {
                 throw new Error("You don't have enough CREDz!")
             }
 
