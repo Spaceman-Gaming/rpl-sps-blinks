@@ -159,7 +159,7 @@ const hireSecurityCommand = {
             }
 
             const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
-            const ix = await program.methods.hireSecurity(amount).accounts({ server: serverKey.publicKey, sps: spsKey }).instruction();
+            const ix = await program.methods.hireSecurity(amount).accounts({ sps: spsKey }).instruction();
             const msg = new anchor.web3.TransactionMessage({
                 payerKey: serverKey.publicKey,
                 recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
