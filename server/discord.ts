@@ -11,8 +11,8 @@ import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const rest = new REST().setToken(DISCORD_BOT_TOKEN);
-
-const url = "https://spsblink.runepunk.gg" // TODO change this to deployment URL
+//https://dial.to/devnet?action=solana-action%3Ahttps%3A%2F%2Fspsblink.runepunk.gg%2Fapi%2Fcorporation%3Fq%3DAbQAEZjVCbykKwSk2nbwovdXu3Syzo5jLMH5qdM2SfJc
+const url = "https://dial.to/devnet?action=solana-action:spsblink.runepunk.gg"
 const connection = new anchor.web3.Connection(process.env.RPC, "confirmed");
 const serverKey = anchor.web3.Keypair.fromSecretKey(bs58.decode(process.env.SERVER_ADMIN_KEY));
 const program: anchor.Program<RplSpsBlinks> = new anchor.Program(idl, new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey)));
@@ -73,7 +73,7 @@ Battle Points: ${sps.battlePoints.toString()},
 CREDz: ${sps.credz.toString()},
 Security Forces: ${sps.securityForces.toString()}
 Is Dead: ${sps.isDead}
-Blink: ${blink}`, ephemeral: true
+Blink: ${encodeURI(blink)}`, ephemeral: true
             })
         } catch (e) {
             await interaction.reply({
@@ -119,7 +119,7 @@ const incorporateCommand = {
                 }
             })
 
-            const blink = `${url}/api/corporation?q=${spsKey.toString()}`
+            const blink = encodeURI(`${url}/api/corporation?q=${spsKey.toString()}`);
             await interaction.reply({
                 content: `
                 Success! Here is your corporation blink: ${blink}
