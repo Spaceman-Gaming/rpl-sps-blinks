@@ -75,7 +75,6 @@ app.get('/api/corporation', async (c) => {
 })
 
 app.post('/api/corporation/buy', async (c) => {
-
     try {
         const corpKey = c.req.query("q");
         const size = parseSizeOrThrow(c.req.query("size"));

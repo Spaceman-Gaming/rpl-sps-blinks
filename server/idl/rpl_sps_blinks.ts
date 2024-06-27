@@ -102,7 +102,8 @@ export type RplSpsBlinks = {
       "accounts": [
         {
           "name": "server",
-          "signer": true
+          "signer": true,
+          "address": "A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8"
         },
         {
           "name": "sps",
@@ -139,7 +140,8 @@ export type RplSpsBlinks = {
         {
           "name": "server",
           "writable": true,
-          "signer": true
+          "signer": true,
+          "address": "A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8"
         },
         {
           "name": "sps",
@@ -187,7 +189,8 @@ export type RplSpsBlinks = {
       "accounts": [
         {
           "name": "server",
-          "signer": true
+          "signer": true,
+          "address": "A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8"
         },
         {
           "name": "sps",
@@ -200,6 +203,56 @@ export type RplSpsBlinks = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "resetPlayerTimer",
+      "discriminator": [
+        168,
+        0,
+        40,
+        49,
+        90,
+        7,
+        131,
+        167
+      ],
+      "accounts": [
+        {
+          "name": "server",
+          "signer": true,
+          "address": "A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8"
+        },
+        {
+          "name": "player",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "reviveSps",
+      "discriminator": [
+        221,
+        3,
+        29,
+        233,
+        54,
+        183,
+        205,
+        29
+      ],
+      "accounts": [
+        {
+          "name": "server",
+          "signer": true,
+          "address": "A2UG3TvnBLjVb2uzz19igwfBN42soLXYHgQZe1TKFsV8"
+        },
+        {
+          "name": "sps",
+          "writable": true
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
