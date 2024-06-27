@@ -65,6 +65,11 @@ pub mod rpl_sps_blinks {
         Ok(())
     }
 
+    pub fn reset_player_timer(ctx: Context<ResetPlayerTimer>) -> Result<()> {
+        ctx.accounts.player.next_purchase_slot = 0;
+        Ok(())
+    }
+
     /**
      * Hire Security allows users to spend CREDz to buy security forces
      */
@@ -102,13 +107,22 @@ pub mod rpl_sps_blinks {
 
         Ok(())
     }
+
+    pub fn revive_sps(ctx: Context<RevivePlayer>) -> Result<()> {
+        ctx.accounts.sps.is_dead = false;
+        ctx.accounts.sps.security_forces += 10;
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
 #[instruction(discord_id:String)]
 pub struct Incorporate<'info> {
     pub system_program: Program<'info, System>,
-    #[account(mut)]
+    #[account(
+        mut,
+        address = SERVER_KEY
+    )]
     pub server: Signer<'info>,
 
     #[account(
@@ -146,7 +160,24 @@ pub struct BuyGoods<'info> {
 }
 
 #[derive(Accounts)]
+pub struct ResetPlayerTimer<'info> {
+    #[account(address = SERVER_KEY)]
+    pub server: Signer<'info>,
+    #[account(mut)]
+    pub player: Account<'info, Player>,
+}
+
+#[derive(Accounts)]
+pub struct RevivePlayer<'info> {
+    #[account(address = SERVER_KEY)]
+    pub server: Signer<'info>,
+    #[account(mut)]
+    pub sps: Account<'info, SPS>,
+}
+
+#[derive(Accounts)]
 pub struct HireSecurity<'info> {
+    #[account(address = SERVER_KEY)]
     pub server: Signer<'info>,
     #[account(mut)]
     pub sps: Account<'info, SPS>,
@@ -154,6 +185,7 @@ pub struct HireSecurity<'info> {
 
 #[derive(Accounts)]
 pub struct Raid<'info> {
+    #[account(address = SERVER_KEY)]
     pub server: Signer<'info>,
     #[account(mut)]
     pub sps: Account<'info, SPS>,
