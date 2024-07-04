@@ -229,7 +229,7 @@ const reviveCorprationCommand = {
                 Buffer.from(interaction.user.id)
             ], program.programId)[0];
             const sps = await program.account.sps.fetch(spsKey);
-            if (sps.isDead) {
+            if (!sps.isDead) {
                 throw new Error("Corp is already revived!")
             }
 
