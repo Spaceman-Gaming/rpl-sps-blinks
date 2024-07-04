@@ -4,7 +4,7 @@ import { cors } from 'hono/cors';
 import { PrismaClient } from '@prisma/client';
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { ActionGetResponse, ActionPostResponse } from './interfaces';
+import { ActionError, ActionGetResponse, ActionPostResponse } from './interfaces';
 import { serveStatic } from '@hono/node-server/serve-static'
 import { RplSpsBlinks } from './idl/rpl_sps_blinks';
 import { Corporation } from '@prisma/client';
@@ -92,16 +92,7 @@ app.post('/api/corporation/buy', async (c) => {
         const respPayload: ActionPostResponse = { transaction: txnb64 };
         return c.json(respPayload, 200);
     } catch (e: any) {
-        const msg = new anchor.web3.TransactionMessage({
-            payerKey: serverKey.publicKey,
-            recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-            instructions: []
-        }).compileToV0Message();
-        const txn = new anchor.web3.VersionedTransaction(msg);
-        txn.sign([serverKey]);
-
-        const errorResponse: ActionPostResponse = {
-            transaction: Buffer.from(txn.serialize()).toString('base64'),
+        const errorResponse: ActionError = {
             message: `ERROR: ${e.message}`
         }
         return c.json(errorResponse, 200);
