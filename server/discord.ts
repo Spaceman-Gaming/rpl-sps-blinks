@@ -243,6 +243,15 @@ const reviveCorprationCommand = {
             const txn = new anchor.web3.VersionedTransaction(msg);
             txn.sign([serverKey]);
             connection.sendRawTransaction(txn.serialize());
+
+            await prisma.corporation.update({
+                where: {
+                    publickey: spsKey.toString()
+                },
+                data: {
+                    isDead: false
+                }
+            });
             await interaction.reply({
                 content: `Successfully revived corp!`, ephemeral: true,
             })
