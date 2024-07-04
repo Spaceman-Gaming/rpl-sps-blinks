@@ -27,6 +27,7 @@ client.once(Events.ClientReady, async (readyClient) => {
                 incorporateCommand.data.toJSON(),
                 hireSecurityCommand.data.toJSON(),
                 leaderboardCommand.data.toJSON(),
+                reviveCorprationCommand.data.toJSON(),
             ]
         }
     )
@@ -53,6 +54,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
             break;
         case "leaderboard":
             leaderboardCommand.execute(interaction);
+            break;
+        case "revive":
+            reviveCorprationCommand.execute(interaction);
             break;
     }
 })
@@ -212,3 +216,40 @@ const leaderboardCommand = {
         }
     }
 }
+
+
+const reviveCorprationCommand = {
+    data: new SlashCommandBuilder()
+        .setName("revive")
+        .setDescription("Revive a corporation that has been destroyed by goblins"),
+    async execute(interaction: ChatInputCommandInteraction) {
+        try {
+            const spsKey = anchor.web3.PublicKey.findProgramAddressSync([
+                Buffer.from("sps"),
+                Buffer.from(interaction.user.id)
+            ], program.programId)[0];
+            const sps = await program.account.sps.fetch(spsKey);
+            if (sps.isDead) {
+                throw new Error("Corp is already revived!")
+            }
+
+            const priorityFeeIx = anchor.web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 });
+            const ix = await program.methods.reviveSps().accounts({ sps: spsKey }).instruction();
+            const msg = new anchor.web3.TransactionMessage({
+                payerKey: serverKey.publicKey,
+                recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+                instructions: [priorityFeeIx, ix]
+            }).compileToV0Message();
+            const txn = new anchor.web3.VersionedTransaction(msg);
+            txn.sign([serverKey]);
+            connection.sendRawTransaction(txn.serialize());
+            await interaction.reply({
+                content: `Successfully revived corp!`, ephemeral: true,
+            })
+        } catch (e: any) {
+            await interaction.reply({
+                content: `Error: ${e.message}`, ephemeral: true,
+            })
+        }
+    }
+}   

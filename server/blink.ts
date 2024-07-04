@@ -19,9 +19,7 @@ const serverKey = anchor.web3.Keypair.fromSecretKey(bs58.decode(process.env.SERV
 const program: anchor.Program<RplSpsBlinks> = new anchor.Program(idl, new anchor.AnchorProvider(connection, new anchor.Wallet(serverKey)));
 const app = new Hono();
 
-app.get('/', (c) => c.redirect('https://spacemangaming.notion.site/Runepunk-Storefronts-37aa1c31a3934fda8211c1de1dd68075?pvs=4'))
-app.use('/actions.json', serveStatic({ path: "./actions.json" }));
-app.use('/public/*', serveStatic({ root: "./" }));
+
 app.use('*', cors({
     origin: ['*'], //TODO: Restrict to x.com or twitter.com
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -30,7 +28,9 @@ app.use('*', cors({
     credentials: true,
     maxAge: 86400,
 }));
-
+app.get('/', (c) => c.redirect('https://spacemangaming.notion.site/Runepunk-Storefronts-37aa1c31a3934fda8211c1de1dd68075?pvs=4'))
+app.use('/actions.json', serveStatic({ path: "./actions.json" }));
+app.use('/public/*', serveStatic({ root: "./" }));
 app.get('/api/corporation', async (c) => {
 
     try {
